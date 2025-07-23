@@ -1,0 +1,15 @@
+##############################################################################################################
+For the model where the feature is: WIOPS and the predicted column is: DISPATCH, got the following insights:
+The model did best when the polynomial degree was: 5 with a R2 score obtained against the test data of: 0.9398
+##############################################################################################################
+
+##############################################################################################################
+For the model where the feature is: WIOPS and the predicted column is: LATENCY, got the following insights:
+The model did best when the polynomial degree was: 5 with a R2 score obtained against the test data of: 0.5726
+##############################################################################################################
+
+##############################################################################################################
+For the model where the feature is: DISPATCH and the predicted column is: LATENCY, got the following insights:
+The model did best when the polynomial degree was: 3 with a R2 score obtained against the test data of: 0.6675
+##############################################################################################################
+
