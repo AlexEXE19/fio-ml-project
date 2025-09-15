@@ -1,1 +1,0 @@
-from .index import remove_outliers, read_files, find_best_pol_degree_2d, plot_2d_regression, find_best_pol_degree_3d, plot_3d_regression

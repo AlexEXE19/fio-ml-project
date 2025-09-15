@@ -1,0 +1,541 @@
+[
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "measures0.csv",
+        "best_degree": 4,
+        "r2score": 0.923
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "measures1.csv",
+        "best_degree": 3,
+        "r2score": 0.938
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "measures2.csv",
+        "best_degree": 3,
+        "r2score": 0.937
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "measures3.csv",
+        "best_degree": 3,
+        "r2score": 0.939
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "measures4.csv",
+        "best_degree": 3,
+        "r2score": 0.938
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "measures5.csv",
+        "best_degree": 3,
+        "r2score": 0.938
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "measures6.csv",
+        "best_degree": 3,
+        "r2score": 0.938
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "measures7.csv",
+        "best_degree": 3,
+        "r2score": 0.938
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "measures8.csv",
+        "best_degree": 3,
+        "r2score": 0.938
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "measures9.csv",
+        "best_degree": 3,
+        "r2score": 0.938
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "measures0.csv",
+        "best_degree": 2,
+        "r2score": 0.561
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "measures1.csv",
+        "best_degree": 2,
+        "r2score": 0.609
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "measures2.csv",
+        "best_degree": 2,
+        "r2score": 0.611
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "measures3.csv",
+        "best_degree": 2,
+        "r2score": 0.553
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "measures4.csv",
+        "best_degree": 2,
+        "r2score": 0.606
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "measures5.csv",
+        "best_degree": 2,
+        "r2score": 0.61
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "measures6.csv",
+        "best_degree": 2,
+        "r2score": 0.609
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "measures7.csv",
+        "best_degree": 2,
+        "r2score": 0.602
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "measures8.csv",
+        "best_degree": 2,
+        "r2score": 0.608
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "measures9.csv",
+        "best_degree": 2,
+        "r2score": 0.605
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "measures0.csv",
+        "best_degree": 2,
+        "r2score": 0.667
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "measures1.csv",
+        "best_degree": 1,
+        "r2score": 0.656
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "measures2.csv",
+        "best_degree": 3,
+        "r2score": 0.689
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "measures3.csv",
+        "best_degree": 4,
+        "r2score": 0.698
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "measures4.csv",
+        "best_degree": 4,
+        "r2score": 0.705
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "measures5.csv",
+        "best_degree": 2,
+        "r2score": 0.668
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "measures6.csv",
+        "best_degree": 2,
+        "r2score": 0.667
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "measures7.csv",
+        "best_degree": 3,
+        "r2score": 0.666
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "measures8.csv",
+        "best_degree": 2,
+        "r2score": 0.666
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "measures9.csv",
+        "best_degree": 1,
+        "r2score": 0.657
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "measures0.csv",
+        "best_degree": 1,
+        "r2score": -450.677
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "measures1.csv",
+        "best_degree": 1,
+        "r2score": -497.899
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "measures2.csv",
+        "best_degree": 1,
+        "r2score": -349.948
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "measures3.csv",
+        "best_degree": 1,
+        "r2score": -136.356
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "measures4.csv",
+        "best_degree": 1,
+        "r2score": -206.442
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "measures5.csv",
+        "best_degree": 1,
+        "r2score": -209.262
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "measures6.csv",
+        "best_degree": 1,
+        "r2score": -263.163
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "measures7.csv",
+        "best_degree": 1,
+        "r2score": -367.618
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "measures8.csv",
+        "best_degree": 1,
+        "r2score": -518.658
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "measures9.csv",
+        "best_degree": 1,
+        "r2score": -724.429
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "measures0.csv",
+        "best_degree": 1,
+        "r2score": -299.945
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "measures1.csv",
+        "best_degree": 1,
+        "r2score": -247.449
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "measures2.csv",
+        "best_degree": 1,
+        "r2score": -167.275
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "measures3.csv",
+        "best_degree": 1,
+        "r2score": -176.191
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "measures4.csv",
+        "best_degree": 1,
+        "r2score": -104.393
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "measures5.csv",
+        "best_degree": 1,
+        "r2score": -100.803
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "measures6.csv",
+        "best_degree": 1,
+        "r2score": -126.953
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "measures7.csv",
+        "best_degree": 1,
+        "r2score": -155.463
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "measures8.csv",
+        "best_degree": 1,
+        "r2score": -237.742
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "measures9.csv",
+        "best_degree": 1,
+        "r2score": -410.861
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "measures0.csv",
+        "best_degree": 1,
+        "r2score": -579.17
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "measures1.csv",
+        "best_degree": 1,
+        "r2score": -448.205
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "measures2.csv",
+        "best_degree": 1,
+        "r2score": -320.045
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "measures3.csv",
+        "best_degree": 1,
+        "r2score": -127.141
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "measures4.csv",
+        "best_degree": 1,
+        "r2score": -185.116
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "measures5.csv",
+        "best_degree": 1,
+        "r2score": -188.72
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "measures6.csv",
+        "best_degree": 2,
+        "r2score": -222.299
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "measures7.csv",
+        "best_degree": 1,
+        "r2score": -328.687
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "measures8.csv",
+        "best_degree": 1,
+        "r2score": -473.211
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "measures9.csv",
+        "best_degree": 1,
+        "r2score": -657.167
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "measures0.csv",
+        "best_degree": 1,
+        "r2score": 0.581
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "measures1.csv",
+        "best_degree": 1,
+        "r2score": 0.574
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "measures2.csv",
+        "best_degree": 1,
+        "r2score": 0.568
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "measures3.csv",
+        "best_degree": 1,
+        "r2score": 0.643
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "measures4.csv",
+        "best_degree": 1,
+        "r2score": 0.592
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "measures5.csv",
+        "best_degree": 1,
+        "r2score": 0.599
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "measures6.csv",
+        "best_degree": 2,
+        "r2score": 0.639
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "measures7.csv",
+        "best_degree": 2,
+        "r2score": 0.624
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "measures8.csv",
+        "best_degree": 1,
+        "r2score": 0.566
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "measures9.csv",
+        "best_degree": 1,
+        "r2score": 0.626
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "wiops",
+        "dataset_name": "global",
+        "best_degree": 4,
+        "r2score": 0.02
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "latency",
+        "dataset_name": "global",
+        "best_degree": 3,
+        "r2score": 0.026
+    },
+    {
+        "feat_col": "time",
+        "pred_col": "dispatch",
+        "dataset_name": "global",
+        "best_degree": 3,
+        "r2score": 0.026
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "latency",
+        "dataset_name": "global",
+        "best_degree": 2,
+        "r2score": 0.611
+    },
+    {
+        "feat_col": "wiops",
+        "pred_col": "dispatch",
+        "dataset_name": "global",
+        "best_degree": 3,
+        "r2score": 0.939
+    },
+    {
+        "feat_col": "latency",
+        "pred_col": "dispatch",
+        "dataset_name": "global",
+        "best_degree": 1,
+        "r2score": 0.631
+    },
+    {
+        "feat_col": "dispatch",
+        "pred_col": "latency",
+        "dataset_name": "global",
+        "best_degree": 1,
+        "r2score": 0.659
+    }
+]

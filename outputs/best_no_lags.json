@@ -1,0 +1,27 @@
+[
+    {
+        "cols": [
+            "time",
+            "wiops",
+            "dispatch"
+        ],
+        "no_lags": 15,
+        "score": 0.95
+    },
+    {
+        "cols": [
+            "time",
+            "wiops"
+        ],
+        "no_lags": 7,
+        "score": 0.737
+    },
+    {
+        "cols": [
+            "time",
+            "dispatch"
+        ],
+        "no_lags": 19,
+        "score": 0.94
+    }
+]

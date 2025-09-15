@@ -1,0 +1,6 @@
+# Ignore all files and subdirectories inside specific folders
+outputs/plots/regressions/2d/**
+outputs/plots/regressions/3d/**
+outputs/plots/timeseries/**
+outputs/plots/xgb/**
+outputs/models/xgb/**
