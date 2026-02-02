@@ -2,15 +2,20 @@
 
 ## Project Overview
 
-This project explores and analyzes datasets generated using the FIO tool (Flexible I/O Tester) to understand disk write performance. The main goal is to predict **latency** based on input parameters such as **WIOPS** and **dispatch queue size (QSize)** using machine learning.
+This project analyzes datasets generated with the **FIO (Flexible I/O Tester)** tool to study disk I/O performance, particularly focusing on **latency** under different workloads. The main goal is to explore the relationships between variables such as **WIOPS** (write I/O operations per second) and **dispatch queue size (QSize)**, and to predict latency using machine learning techniques.
 
-The project includes regression analysis, time series analysis, and predictive modeling with **XGBoost**. All functionalities are integrated into a **command-line interface (CLI)** that allows users to select datasets, choose features, and generate plots or train models.
+The application provides a **command-line interface (CLI)** that allows users to:
 
----
+- Select one or more datasets for analysis
+- Perform **2D or 3D polynomial regression** to study dependencies between variables
+- Plot **time series** for individual variables or combined datasets
+- Train and evaluate **XGBoost regression models** for latency prediction
+
+## The system is designed to be flexible and scalable, automatically handling multiple datasets, removing outliers, and saving plots and trained models in timestamped folders for easy tracking. This makes it useful for both exploratory data analysis and predictive modeling of disk performance.
 
 ## Running the Software
 
-The project includes a Python virtual environment with all dependencies installed. To run the software, follow these steps:
+The project includes a requirements file with all the necessary dependencies. To run the software, follow these steps:
 
 ### 1. Activate the Virtual Environment
 
@@ -22,8 +27,28 @@ Navigate to the root directory of the project folder, then activate the virtual 
 venv\Scripts\activate
 ```
 
-### 2. Run the "cli.py" script from the root directory of the project.
+- **Linux**:
 
 ```bash
-python cli.py
+source venv/bin/activate
+```
+
+### 2. Install de dependencies from the given file.
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Run the "index.py" as a module script from the root directory of the project.
+
+- **Windows**:
+
+```bash
+python -m index
+```
+
+- **Linux**:
+
+```bash
+python3 -m index
 ```
