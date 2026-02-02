@@ -1,283 +1,254 @@
+import os
+import re
+import json
+import pickle
+import itertools
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.metrics import r2_score, root_mean_squared_error, mean_absolute_error
 from sklearn.pipeline import make_pipeline
+from sklearn.metrics import r2_score
+
 import xgboost as xgb
 
-import matplotlib.pyplot as plt
+# ====================
+# Constants
+# ====================
 
-import itertools
-import json
-import os
-from datetime import datetime
-import re
-import pickle
+OUTPUTS_DIR = "outputs"
+PLOTS_DIR = os.path.join(OUTPUTS_DIR, "plots")
+MODELS_DIR = os.path.join(OUTPUTS_DIR, "models")
+
+BEST_DEGREES_FILE = os.path.join(OUTPUTS_DIR, "best_degrees.json")
+BEST_LAGS_FILE = os.path.join(OUTPUTS_DIR, "best_no_lags.json")
+
+FIRST_TIMESTAMP = 1730818413390259424
+POLY_DEGREE_RANGE = range(1, 10)
+LAG_RANGE = range(3, 21)
+TRAIN_SPLIT_Q = 0.7
 
 
-"""
-Load '.csv' files from the passed directory
-"""
+# ====================
+# Files & Directories
+# ====================
+
+
+def ensure_dir(path: str):
+    os.makedirs(path, exist_ok=True)
+
+
+def make_timestamp_dir(base_path: str) -> str:
+    ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    path = os.path.join(base_path, ts)
+    ensure_dir(path)
+    return path
+
+
+# ====================
+# Data IO
+# ====================
 
 
 def load_files(dir_path):
-    files = []
-    for entry in os.scandir(dir_path):
-        if entry.is_file() and entry.name.endswith(".csv"):
-            files.append(entry)
-
-    return files
+    return sorted(
+        [f for f in os.scandir(dir_path) if f.is_file() and f.name.endswith(".csv")],
+        key=lambda f: f.name,
+    )
 
 
-"""
-Read files content and save it into a list of dictionary containing the dataframe and dataset name
-"""
+def clean_data_frame(df: pd.DataFrame) -> pd.DataFrame:
+    mask = (df["latency"] == 0) & (df["dispatch"] == 0)
+    if mask.any():
+        idx = mask.idxmax()
+        if idx + 1 < len(df) and df.loc[idx + 1, ["latency", "dispatch"]].eq(0).all():
+            return df.loc[: idx - 1]
+    return df
 
 
 def read_files(files):
-    main_data_frame = []
-    FIRST_TIMESTAMP = 1730818413390259424
-
+    datasets = []
     for file in files:
-        temp_data_frame = pd.read_csv(file.path)
-        temp_data_frame = clean_data_frame(temp_data_frame)
+        df = pd.read_csv(file.path)
+        df = clean_data_frame(df)
 
-        # normalize time
-        temp_data_frame["time"] = (
-            temp_data_frame["time"]
-            .apply(lambda x: (x - FIRST_TIMESTAMP) / 1_000_000_000)
-            .round(2)
-        )
+        df["time"] = ((df["time"] - FIRST_TIMESTAMP) / 1_000_000_000).round(2)
 
-        # extract run_id from filename "measures<index>.csv"
         match = re.search(r"measures(\d+)\.csv", file.name)
-        if match:
-            run_id = int(match.group(1))
-        else:
-            run_id = -1  # fallback if regex fails
+        df["run_id"] = int(match.group(1)) if match else -1
 
-        temp_data_frame["run_id"] = run_id
+        datasets.append({"data_frame": df, "dataset_name": file.name})
 
-        main_data_frame.append(
-            {"data_frame": temp_data_frame, "dataset_name": file.name}
-        )
-
-    return main_data_frame
+    return datasets
 
 
-"""
-Concat dataframes returns only one dataframe dictionary having concatenated all its passed dataframes
-"""
-
-
-def concat_dataframes(data_frame_dicts):
-    main_data_frame = pd.DataFrame()
-
-    for dfd in data_frame_dicts:
-        main_data_frame = pd.concat(
-            [main_data_frame, dfd["data_frame"]], ignore_index=True
-        )
-
-    return {"data_frame": main_data_frame, "dataset_name": "global"}
-
-
-"""
-Cleans rows where the dataframe begins to have null rows all the way to the end of the dataframe
-"""
-
-
-def clean_data_frame(data_frame):
-    mask = (data_frame["latency"] == 0) & (data_frame["dispatch"] == 0)
-
-    if mask.any():
-        first_zero_index = mask.idxmax()
-        if (
-            data_frame["latency"].iloc[first_zero_index + 1] == 0
-            and data_frame["dispatch"].iloc[first_zero_index + 1] == 0
-        ):
-            return data_frame.loc[: first_zero_index - 1]
-        else:
-            return data_frame
-    else:
-        return data_frame
-
-
-"""
-Remove outliers using percentile method, function is subject to change because the actual difference is minimal
-therefore we need a more efficient approach
-"""
-
-
-def remove_outliers(data_frame: pd.DataFrame):
-    columns = ["wiops", "latency", "dispatch"]
-    cleaned_df = data_frame.copy()
-
-    for col in columns:
-        Q1 = cleaned_df[col].quantile(0.25)
-        Q3 = cleaned_df[col].quantile(0.75)
-        IQR = Q3 - Q1
-
-        lower_bound = Q1 - 1.5 * IQR
-        upper_bound = Q3 + 1.5 * IQR
-
-        cleaned_df = cleaned_df[
-            (cleaned_df[col] >= lower_bound) & (cleaned_df[col] <= upper_bound)
-        ].reset_index(drop=True)
-
-    return cleaned_df
-
-
-"""
-Checks if for the specific columns and dataset name we already have saved into the record an efficient polynomial degree
-and then returns it otherwise returns False
-"""
-
-
-def check_for_best_degree(feat_col, pred_col, dataset_name):
-    file_path = "./outputs/best_degrees.json"
-
-    if os.path.exists(file_path) and os.path.getsize(file_path) != 0:
-        with open(file_path, "r") as f:
-            data = json.load(f)
-
-            for d in data:
-                if (
-                    d["dataset_name"] == dataset_name
-                    and d["feat_col"] == feat_col
-                    and d["pred_col"] == pred_col
-                ):
-                    return d
-
-        return False
-
-    else:
-        fd = os.open(file_path, os.O_CREAT)
-        os.close(fd)
-
-        with open(file_path, "w") as f:
-            json.dump([], f)
-
-
-"""
-Save into the record the most efficient polynomial degrees found
-"""
-
-
-def save_best_degree(best_degree_dict):
-    file_path = "./outputs/best_degrees.json"
-
-    with open(file_path, "r") as f:
-        read_data = json.load(f)
-
-    read_data.append(best_degree_dict)
-
-    with open(file_path, "w") as f:
-        json.dump(read_data, f, indent=4)
-
-
-"""
-It finds best polynomial degree by trying multiple values ranging from 1 to 9, it calculates the model score and gets the best
-five, ultimately it chooses the smallest degree out of them based on a tolerance which should be bigger than the difference
-of the best degree score and other smaller degree score 
-"""
-
-
-def find_best_pol_degree_2d(
-    df_train, df_test, feat_col, pred_col, dataset_name, tolerance=0.02
-):
-    X_train = df_train[feat_col].values.reshape(-1, 1)
-    y_train = df_train[pred_col].values
-
-    X_test = df_test[feat_col].values.reshape(-1, 1)
-    y_test = df_test[pred_col].values
-
-    degree_score_pairs = []
-
-    for degree in range(1, 10):
-        model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
-        model.fit(X_train, y_train)
-
-        y_pred = model.predict(X_test)
-
-        r2 = r2_score(y_test, y_pred)
-        degree_score_pairs.append((degree, r2))
-
-    best_degrees_sorted = sorted(degree_score_pairs, key=lambda x: x[1], reverse=True)[
-        0:5
-    ]
-    best_degree = best_degrees_sorted[0]
-    best_score = best_degree[1]
-
-    for bds in best_degrees_sorted:
-        if bds[0] < best_degree[0] and best_score - bds[1] <= tolerance:
-            best_degree = bds
-
-    best_degree_dict = {
-        "feat_col": feat_col,
-        "pred_col": pred_col,
-        "dataset_name": dataset_name,
-        "best_degree": best_degree[0],
-        "r2score": round(best_degree[1], 3),
+def concat_dataframes(dfs):
+    return {
+        "data_frame": pd.concat([d["data_frame"] for d in dfs], ignore_index=True),
+        "dataset_name": "global",
     }
 
-    save_best_degree(best_degree_dict)
 
-    return best_degree_dict
+# ====================
+# Cleaning
+# ====================
 
 
-"""
-Create and plot model
-"""
+def remove_outliers(df: pd.DataFrame):
+    result = df.copy()
+    for col in ["wiops", "latency", "dispatch"]:
+        q1, q3 = result[col].quantile([0.25, 0.75])
+        iqr = q3 - q1
+        low, high = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+        result = result[(result[col] >= low) & (result[col] <= high)]
+    return result.reset_index(drop=True)
+
+
+# ====================
+# Persistence (JSON / Models)
+# ====================
+
+
+def _load_json(path):
+    ensure_dir(os.path.dirname(path))
+    if not os.path.isfile(path) or os.path.getsize(path) == 0:
+        with open(path, "w") as f:
+            json.dump([], f)
+    with open(path, "r") as f:
+        return json.load(f)
+
+
+def _save_json(path, data):
+    with open(path, "w") as f:
+        json.dump(data, f, indent=4)
+
+
+def save_model(model, timestamp, name):
+    path = os.path.join(MODELS_DIR, "xgb", timestamp)
+    ensure_dir(path)
+    with open(os.path.join(path, f"{name}.pkl"), "wb") as f:
+        pickle.dump(model, f)
+
+
+# ====================
+# Polynomial Degree Logic
+# ====================
+
+
+def get_best_degree(feat_col, pred_col, dataset):
+    data = _load_json(BEST_DEGREES_FILE)
+    for d in data:
+        if (
+            d["feat_col"] == feat_col
+            and d["pred_col"] == pred_col
+            and d["dataset_name"] == dataset
+        ):
+            return d
+    return None
+
+
+def save_best_degree(entry):
+    data = _load_json(BEST_DEGREES_FILE)
+    data.append(entry)
+    _save_json(BEST_DEGREES_FILE, data)
+
+
+def find_best_pol_degree_2d(df_train, df_test, feat_col, pred_col, dataset, tol=0.02):
+    Xtr = df_train[[feat_col]]
+    ytr = df_train[pred_col]
+    Xte = df_test[[feat_col]]
+    yte = df_test[pred_col]
+
+    scores = []
+    for d in POLY_DEGREE_RANGE:
+        model = make_pipeline(PolynomialFeatures(d), LinearRegression())
+        model.fit(Xtr, ytr)
+        r2 = r2_score(yte, model.predict(Xte))
+        scores.append((d, r2))
+
+    scores.sort(key=lambda x: x[1], reverse=True)
+    best_d, best_score = scores[0]
+
+    for d, s in scores[:5]:
+        if d < best_d and best_score - s <= tol:
+            best_d, best_score = d, s
+
+    result = {
+        "feat_col": feat_col,
+        "pred_col": pred_col,
+        "dataset_name": dataset,
+        "best_degree": best_d,
+        "r2score": round(best_score, 3),
+    }
+    save_best_degree(result)
+    return result
+
+
+# ====================
+# Regression Models
+# ====================
+
+
+def create_2d_regression_model(
+    df_train, df_test, feat_col, pred_col, dataset, degree=0
+):
+    if degree == 0:
+        entry = get_best_degree(feat_col, pred_col, dataset)
+        if entry is None:
+            entry = find_best_pol_degree_2d(
+                df_train, df_test, feat_col, pred_col, dataset
+            )
+        degree = entry["best_degree"]
+
+    model = make_pipeline(PolynomialFeatures(degree), LinearRegression())
+    model.fit(df_train[[feat_col]], df_train[pred_col])
+
+    y_pred = model.predict(df_test[[feat_col]])
+    r2 = r2_score(df_test[pred_col], y_pred)
+
+    return model, r2
 
 
 def create_and_plot_simple_regression(
-    df_train_dict, df_test_dict, columns, force_degrees_dicts=[]
+    df_train_dicts, df_test_dict, columns, force_degrees_dicts=[]
 ):
-    MAIN_DIR_PATH = f"outputs/plots/regressions/2d/"
-
-    if not os.path.isdir(MAIN_DIR_PATH):
-        os.mkdir(MAIN_DIR_PATH)
+    MAIN_DIR_PATH = os.path.join(PLOTS_DIR, "regressions", "2d")
+    ensure_dir(MAIN_DIR_PATH)
 
     time_now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
     SECONDARY_DIR_PATH = os.path.join(MAIN_DIR_PATH, time_now)
-    os.mkdir(SECONDARY_DIR_PATH)
+    ensure_dir(SECONDARY_DIR_PATH)
 
     df_test = df_test_dict["data_frame"]
 
     for feat_col, pred_col in itertools.combinations(columns, 2):
         FILE_PATH = os.path.join(SECONDARY_DIR_PATH, f"{feat_col}-{pred_col}")
-        os.mkdir(FILE_PATH)
+        ensure_dir(FILE_PATH)
 
         X_test = df_test[feat_col].values.reshape(-1, 1)
         y_test = df_test[pred_col].values
 
-        no_of_samples = len(df_train_dict)
-
+        no_of_samples = len(df_train_dicts)
         average_pol_degree = 0
         average_r2score = 0
 
-        for dftrd in df_train_dict:
-            df_train = dftrd["data_frame"]
+        for dftrd in df_train_dicts:
+            df_train = remove_outliers(dftrd["data_frame"])
             dataset_name = dftrd["dataset_name"]
 
-            df_train = remove_outliers(df_train)
-
+            degree = 0
             if force_degrees_dicts:
                 for fdd in force_degrees_dicts:
                     if feat_col == fdd["feat_col"] and pred_col == fdd["pred_col"]:
                         degree = fdd["degree"]
-            else:
-                degree = 0
-
-            X_train = df_train[feat_col].values.reshape(-1, 1)
-            y_train = df_train[pred_col].values
 
             model, r2score = create_2d_regression_model(
                 df_train, df_test, feat_col, pred_col, dataset_name, degree
-            ).values()
+            )
 
             degree = model.named_steps["polynomialfeatures"].degree
             coefs = model.named_steps["linearregression"].coef_
@@ -286,11 +257,11 @@ def create_and_plot_simple_regression(
             average_pol_degree += degree
             average_r2score += r2score
 
-            X_line = np.linspace(X_train.min(), X_train.max(), 200).reshape(-1, 1)
-            y_line = model.predict(X_line)
-
-            plot_title = f"Polynomial regression (degree={degree})\nModel's coeficitients and intercept are:\n{coefs} - {intercept}"
-            plot_label = "Train regression curve"
+            X_line = np.linspace(
+                df_train[feat_col].min(), df_train[feat_col].max(), 200
+            ).reshape(-1, 1)
+            X_line_df = pd.DataFrame(X_line, columns=[feat_col])
+            y_line = model.predict(X_line_df)
 
             scatter_data = [
                 {
@@ -300,120 +271,35 @@ def create_and_plot_simple_regression(
                     "label": "Test data",
                 },
                 {
-                    "X_scatter": X_train,
-                    "y_scatter": y_train,
+                    "X_scatter": df_train[feat_col].values,
+                    "y_scatter": df_train[pred_col].values,
                     "color": "skyblue",
                     "label": "Train data",
                 },
             ]
 
-            filename = (
-                "".join(dataset_name.split(".")[:-1])
-                if dataset_name != "global"
-                else dataset_name
-            )
-
             plot_results(
-                X_line,
-                y_line,
-                "blue",
-                plot_title,
-                feat_col.upper(),
-                pred_col.upper(),
-                plot_label,
-                scatter_data,
-                filename,
-                FILE_PATH,
+                X=X_line,
+                y=y_line,
+                title=f"Polynomial regression (degree={degree})\nCoefficients: {coefs}, Intercept: {intercept}",
+                xlabel=feat_col.upper(),
+                ylabel=pred_col.upper(),
+                path=FILE_PATH,
+                name=dataset_name.split(".")[0]
+                if dataset_name != "global"
+                else "global",
+                scatter=scatter_data,
             )
 
         average_pol_degree /= no_of_samples
         average_r2score /= no_of_samples
-
-        if filename == "global":
-            print(
-                f"Polynomial degree and r2score of global model for {feat_col.upper()} and {pred_col.lower()} are: {round(average_pol_degree)} and {round(average_r2score, 3)}"
-            )
-        else:
-            print(
-                f"Average polynomial degree and r2score across all datasets for {feat_col.upper()} and {pred_col.lower()} are: {round(average_pol_degree)} and {round(average_r2score, 3)}"
-            )
-
-
-"""
-Create a two dimensional regression model
-"""
-
-
-def create_2d_regression_model(
-    df_train, df_test, feat_col, pred_col, dataset_name, degree=0
-):
-    X_train = df_train[feat_col].values.reshape(-1, 1)
-    y_train = df_train[pred_col].values
-
-    X_test = df_test[feat_col].values.reshape(-1, 1)
-    y_test = df_test[pred_col].values
-
-    r2score = 0
-
-    if degree == 0:
-        best_degree_dict = check_for_best_degree(feat_col, pred_col, dataset_name)
-        if best_degree_dict:
-            degree = best_degree_dict["best_degree"]
-        else:
-            best_degree_dict = find_best_pol_degree_2d(
-                df_train, df_test, feat_col, pred_col, dataset_name
-            )
-            degree = best_degree_dict["best_degree"]
-            r2score = best_degree_dict["r2score"]
-
-    model = make_pipeline(PolynomialFeatures(degree=degree), LinearRegression())
-
-    model.fit(X_train, y_train)
-
-    if r2score == 0:
-        y_pred = model.predict(X_test)
-        r2score = r2_score(y_test, y_pred)
-
-    return {"model": model, "r2score": r2score}
-
-
-"""
-Plots the regression curve or the timeseries
-"""
-
-
-def plot_results(
-    X_line,
-    y_line,
-    color,
-    title,
-    xlabel,
-    ylabel,
-    plot_label,
-    scatter_data,
-    filename,
-    file_path,
-):
-    plt.plot(X_line, y_line, color=color, label=plot_label)
-
-    if scatter_data:
-        for sd in scatter_data:
-            X_scatter = sd["X_scatter"]
-            y_scatter = sd["y_scatter"]
-            plt.scatter(X_scatter, y_scatter, color=sd["color"], label=sd["label"])
-
-    plt.title(title)
-
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.legend()
-
-    save_figure(plt.gcf(), filename, file_path)
-    plt.clf()
+        print(
+            f"Average polynomial degree: {round(average_pol_degree)}, Average R2: {round(average_r2score, 3)} for {feat_col}-{pred_col}"
+        )
 
 
 def create_and_plot_3d_regression_model(df_train_dicts, feat_cols, pred_col, degree=2):
-    MAIN_DIR_PATH = f"./outputs/plots/regressions/3d/"
+    MAIN_DIR_PATH = "./outputs/plots/regressions/3d/"
     if not os.path.isdir(MAIN_DIR_PATH):
         os.mkdir(MAIN_DIR_PATH)
 
@@ -469,220 +355,104 @@ def create_and_plot_3d_regression_model(df_train_dicts, feat_cols, pred_col, deg
         plt.clf()
 
 
-"""
-Find the most efficient number of lags
-"""
+# ====================
+# Plotting
+# ====================
 
 
-def find_best_no_lags(global_df_dict, cols, target_col):
-    global_df = global_df_dict["data_frame"].copy()
-    best_score = 0
-    best_n = 0
-    average_score = 0
-
-    for n in range(3, 21):
-        feat_cols = cols.copy()
-        for lag in range(1, n):
-            latency_lag = f"latency_lag{lag}"
-            global_df[latency_lag] = global_df.groupby("run_id")["latency"].shift(lag)
-            feat_cols.append(latency_lag)
-
-        global_df = remove_outliers(global_df.dropna())
-
-        X = global_df[feat_cols]
-        y = global_df[target_col]
-
-        # Train/test split by time
-        train_mask = global_df["time"] < global_df["time"].quantile(0.7)
-        X_train, y_train = X[train_mask], y[train_mask]
-        X_test, y_test = X[~train_mask], y[~train_mask]
-        time_test = global_df.loc[~train_mask, "time"]
-
-        # Train XGBoost model
-        model = xgb.XGBRegressor(
-            objective="reg:squarederror",
-            n_estimators=300,
-            learning_rate=0.05,
-            max_depth=6,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            random_state=42,
-        )
-        model.fit(X_train, y_train)
-
-        # Predictions
-        y_pred = model.predict(X_test)
-
-        r2 = r2_score(y_test, y_pred)
-        rmse = root_mean_squared_error(y_test, y_pred)
-        mae = mean_absolute_error(y_test, y_pred)
-
-        average_score += r2
-
-        if r2 > best_score:
-            best_score = r2
-            best_n = n
-
-    result_dict = {"cols": cols, "no_lags": best_n, "score": round(best_score, 3)}
-
-    save_best_no_lags(result_dict)
-    return result_dict
-
-    # print(f"Best score is: {best_score:.4f} for number of lags {best_n}")
-    # print(f"Mean of the score is: {average_score / 18:.4f} for columns: {cols}")
+def save_figure(fig, name, path):
+    ensure_dir(path)
+    fig.savefig(os.path.join(path, name), dpi=300)
 
 
-"""
-Get the saved number of lags for creating the most efficient model
-"""
+def plot_results(X, y, title, xlabel, ylabel, path, name, scatter=None):
+    plt.plot(X, y, label="model")
+    if scatter:
+        for s in scatter:
+            plt.scatter(s["X_scatter"], s["y_scatter"], label=s["label"], alpha=0.6)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.legend()
+    save_figure(plt.gcf(), name, path)
+    plt.clf()
+
+
+# ====================
+# XGBoost
+# ====================
 
 
 def get_best_no_lags(cols):
-    FILE_PATH = "outputs/best_no_lags.json"
-
-    # Ensure file exists with empty list
-    if not os.path.isfile(FILE_PATH) or os.path.getsize(FILE_PATH) == 0:
-        with open(FILE_PATH, "w") as f:
-            json.dump([], f)
-
-    with open(FILE_PATH, "r") as f:
-        data = json.load(f)
-
-    # Check if entry exists
-    for entry in data:
-        if set(entry["cols"]) == set(cols):
-            return entry
-
+    data = _load_json(BEST_LAGS_FILE)
+    for d in data:
+        if set(d["cols"]) == set(cols):
+            return d
     return None
 
 
-"""
-Save the found number of lags
-"""
+def save_best_no_lags(entry):
+    data = _load_json(BEST_LAGS_FILE)
+    data.append(entry)
+    _save_json(BEST_LAGS_FILE, data)
 
 
-def save_best_no_lags(new_entry):
-    FILE_PATH = "outputs/best_no_lags.json"
+def find_best_no_lags(global_df, cols, target):
+    best = {"no_lags": 0, "score": -np.inf}
 
-    with open(FILE_PATH, "r") as f:
-        data = json.load(f)
+    for n in LAG_RANGE:
+        df = global_df.copy()
+        features = cols.copy()
 
-    data.append(new_entry)
+        for lag in range(1, n):
+            name = f"latency_lag{lag}"
+            df[name] = df.groupby("run_id")["latency"].shift(lag)
+            features.append(name)
 
-    # Save updated data
-    with open(FILE_PATH, "w") as f:
-        json.dump(data, f, indent=4)
+        df = remove_outliers(df.dropna())
+
+        mask = df["time"] < df["time"].quantile(TRAIN_SPLIT_Q)
+        Xtr, Xte = df.loc[mask, features], df.loc[~mask, features]
+        ytr, yte = df.loc[mask, target], df.loc[~mask, target]
+
+        model = xgb.XGBRegressor(objective="reg:squarederror", random_state=42)
+        model.fit(Xtr, ytr)
+        r2 = r2_score(yte, model.predict(Xte))
+
+        if r2 > best["score"]:
+            best = {"cols": cols, "no_lags": n, "score": round(r2, 3)}
+
+    save_best_no_lags(best)
+    return best
 
 
-"""
-Trains and plots a timeseries gradient boosted decision tree (GBDT) regressor
-"""
+def create_and_plot_xgb_model(global_df_dict, cols, target, out_dir):
+    df = global_df_dict["data_frame"].copy()
+    best = get_best_no_lags(cols) or find_best_no_lags(df, cols, target)
 
+    features = cols.copy()
+    for lag in range(1, best["no_lags"]):
+        name = f"latency_lag{lag}"
+        df[name] = df.groupby("run_id")["latency"].shift(lag)
+        features.append(name)
 
-def create_and_plot_xgb_model(global_df_dict, cols, target_col, TIMESTAMP_DIR):
-    SUB_DIR = "-".join(cols)
-    DIR_PATH = os.path.join(TIMESTAMP_DIR, SUB_DIR)
+    df = remove_outliers(df.dropna())
 
-    os.mkdir(DIR_PATH)
+    mask = df["time"] < df["time"].quantile(TRAIN_SPLIT_Q)
+    Xtr, Xte = df.loc[mask, features], df.loc[~mask, features]
+    ytr, yte = df.loc[mask, target], df.loc[~mask, target]
+    t = df.loc[~mask, "time"]
 
-    global_df = global_df_dict["data_frame"].copy()
-    best_score = 0
-    best_n = 0
-    average_score = 0
+    model = xgb.XGBRegressor(objective="reg:squarederror", random_state=42)
+    model.fit(Xtr, ytr)
 
-    best_no_lags_dict = get_best_no_lags(cols)
+    ts_dir = make_timestamp_dir(out_dir)
+    save_model(model, os.path.basename(ts_dir), "-".join(cols))
 
-    if best_no_lags_dict is None:
-        best_no_lags_dict = find_best_no_lags(global_df_dict, cols, target_col)
+    y_pred = model.predict(Xte)
 
-    no_lags = best_no_lags_dict["no_lags"]
-
-    feat_cols = cols.copy()
-
-    for lag in range(1, no_lags):
-        latency_lag = f"latency_lag{lag}"
-        global_df[latency_lag] = global_df.groupby("run_id")["latency"].shift(lag)
-        feat_cols.append(latency_lag)
-
-    global_df = remove_outliers(global_df.dropna())
-
-    X = global_df[feat_cols]
-    y = global_df[target_col]
-
-    # Train/test split by time
-    train_mask = global_df["time"] < global_df["time"].quantile(0.7)
-    X_train, y_train = X[train_mask], y[train_mask]
-    X_test, y_test = X[~train_mask], y[~train_mask]
-    time_test = global_df.loc[~train_mask, "time"]
-
-    # Train XGBoost model
-    model = xgb.XGBRegressor(
-        objective="reg:squarederror",
-        n_estimators=300,
-        learning_rate=0.05,
-        max_depth=6,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        random_state=42,
-    )
-    model.fit(X_train, y_train)
-
-    # Saving the model
-    save_model(model, os.path.basename(TIMESTAMP_DIR), file_name=SUB_DIR)
-
-    # Predictions
-    y_pred = model.predict(X_test)
-
-    # Metrics
-    rmse = root_mean_squared_error(y_test, y_pred)
-    mae = mean_absolute_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
-
-    # # Time series plot
-    plt.figure(figsize=(12, 6))
-    plt.title(f"r2score: {r2}")
-    plt.plot(time_test, y_test.values, label="Actual Latency", color="blue")
-    plt.plot(time_test, y_pred, label="Predicted Latency", color="red", linestyle="--")
-    plt.xlabel("Time (ms)")
-    plt.ylabel("Latency")
-    plt.title("Actual vs Predicted Latency (Test Set)")
+    plt.plot(t, yte, label="actual")
+    plt.plot(t, y_pred, label="predicted")
     plt.legend()
-
-    save_figure(plt.gcf(), "model_plot", DIR_PATH)
+    save_figure(plt.gcf(), "prediction", ts_dir)
     plt.clf()
-
-    # # Feature importance plot
-    importance = model.feature_importances_
-    plt.figure(figsize=(8, 5))
-    plt.barh(feat_cols, importance, color="green")
-    plt.xlabel("Importance")
-    plt.title("Feature Importances")
-
-    save_figure(plt.gcf(), "importance_plot", DIR_PATH)
-    plt.clf()
-
-
-"""
-Save the model
-"""
-
-
-def save_model(model, timestamp, file_name):
-    DIR_PATH = os.path.join("outputs/models/xgb", timestamp)
-    if not os.path.isdir(DIR_PATH):
-        os.mkdir(DIR_PATH)
-
-    FILE_PATH = os.path.join(DIR_PATH, f"{file_name}.pkl")
-
-    with open(FILE_PATH, "wb") as f:
-        pickle.dump(model, f)
-
-
-"""
-Save figure
-"""
-
-
-def save_figure(fig, file_name, file_path):
-    file_path = os.path.join(file_path, file_name)
-    fig.savefig(file_path, dpi=300)
