@@ -1,68 +1,43 @@
-# Description of the files:
-The experiments were run on a single local machine where we limited the maximum I/O per second of the storage system and measured the dispatch queue length of fio requests.
+# Dataset guide
 
-    - In the openloop folder, you will find multiple CSV files. Each file contains the wiops command issued and the dispatch queue size recorded at runtime. Each file represents a different run, with a total of 10 runs conducted.
+Experiments were run on a single local system using fio. Two scenarios are captured: open loop runs (fixed commands) and closed loop runs (PI-controlled). The CLI in `index.py` currently loads only the open loop folder.
 
-    - In the closed-loop-10runs folder, we ran the same experiment on the same system but in a feedback loop using a PI controller that follows a specific objective. There are two CSV files:
+## Folder structure
 
-      - control.csv: contains the wiops commands issued by the PI controller at runtime.
+```
+datasets/
+├── 1.openloop/
+│   ├── measures0.csv
+│   ├── ...
+│   └── measures9.csv
+└── 2.closed-loop-10runs/
+    ├── run-0/
+    │   ├── config.json
+    │   ├── control.csv
+    │   └── sensor-dispatch.csv
+    ├── ...
+    └── run-9/
+```
 
-      - sensor-dispatch.csv: contains the dispatch queue size recorded at runtime. 
-  
-/data_local_machine_dispatch-queue/
-├── 1.openloop
-│   ├── measures0.csv
-│   ├── measures1.csv
-│   ├── measures2.csv
-│   ├── measures3.csv
-│   ├── measures4.csv
-│   ├── measures5.csv
-│   ├── measures6.csv
-│   ├── measures7.csv
-│   ├── measures8.csv
-│   └── measures9.csv
-├── 2.closed-loop-10runs
-│   ├── run-0
-│   │   ├── config.json
-│   │   ├── control.csv
-│   │   ├── control.log
-│   │   └── sensor-dispatch.csv
-│   ├── run-1
-│   │   ├── config.json
-│   │   ├── control.csv
-│   │   └── sensor-dispatch.csv
-│   ├── run-2
-│   │   ├── config.json
-│   │   ├── control.csv
-│   │   └── sensor-dispatch.csv
-│   ├── run-3
-│   │   ├── config.json
-│   │   ├── control.csv
-│   │   └── sensor-dispatch.csv
-│   ├── run-4
-│   │   ├── config.json
-│   │   ├── control.csv
-│   │   └── sensor-dispatch.csv
-│   ├── run-5
-│   │   ├── config.json
-│   │   ├── control.csv
-│   │   └── sensor-dispatch.csv
-│   ├── run-6
-│   │   ├── config.json
-│   │   ├── control.csv
-│   │   └── sensor-dispatch.csv
-│   ├── run-7
-│   │   ├── config.json
-│   │   ├── control.csv
-│   │   └── sensor-dispatch.csv
-│   ├── run-8
-│   │   ├── config.json
-│   │   ├── control.csv
-│   │   └── sensor-dispatch.csv
-│   └── run-9
-│       ├── config.json
-│       ├── control.csv
-│       └── sensor-dispatch.csv
-└── README.md
+## Open loop (1.openloop)
 
-12 directories, 42 files
+- 10 CSVs (`measures0.csv` ... `measures9.csv`), each a separate run.
+- Columns: `time`, `wiops`, `latency`, `dispatch`.
+- Example rows (truncated):
+  - `1730818413390259424,50,1.6831,0`
+  - `1730818413490259592,50,1.7270,49.36`
+
+## Closed loop (2.closed-loop-10runs)
+
+Each `run-*` directory contains (not used by the CLI, available for manual analysis):
+
+- `config.json`: PI controller parameters (fields include `kp`, `ki`, `ks`, `dt`, `output_range`, `sensor`, `actuator`, `target`, `device`, `a`, `b`, `mp`).
+- `control.csv`: controller outputs with columns `time`, `target`, `error`, `control_output`, `wiops_output`.
+- `sensor-dispatch.csv`: measured queue size with columns `time`, `dispatch`.
+
+## Notes and usage
+
+- Timestamps are stored as large integers; retain original units when plotting or training.
+- The CLI defaults to loading all open loop files. You can select subsets or ranges when prompted.
+- Closed loop files are available for offline analysis or custom pipelines; they are not auto-loaded by the current CLI menu.
+- Outputs produced by the CLI are written to `outputs/` and do not modify these source files.

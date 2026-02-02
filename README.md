@@ -1,54 +1,74 @@
-# FIO Data Analysis and Machine Learning Project
+# FIO Machine Learning Toolkit
 
-## Project Overview
+CLI-driven utilities for exploring fio-based storage experiments, plotting time series, and training simple regression and XGBoost models on dispatch queue data.
 
-This project analyzes datasets generated with the **FIO (Flexible I/O Tester)** tool to study disk I/O performance, particularly focusing on **latency** under different workloads. The main goal is to explore the relationships between variables such as **WIOPS** (write I/O operations per second) and **dispatch queue size (QSize)**, and to predict latency using machine learning techniques.
+## What this project does
 
-The application provides a **command-line interface (CLI)** that allows users to:
+- Loads fio experiments from `datasets/1.openloop` (see [datasets/README.md](datasets/README.md) for details)
+- Fits 2D or 3D polynomial regressions to study relationships between `wiops`, `dispatch`, and `latency`
+- Trains XGBoost regressors for latency prediction with alternative feature subsets
+- Plots per-column time series for single runs and combined datasets
+- Saves plots and trained models in timestamped folders under `outputs/`
 
-- Select one or more datasets for analysis
-- Perform **2D or 3D polynomial regression** to study dependencies between variables
-- Plot **time series** for individual variables or combined datasets
-- Train and evaluate **XGBoost regression models** for latency prediction
+## Repository layout
 
-## The system is designed to be flexible and scalable, automatically handling multiple datasets, removing outliers, and saving plots and trained models in timestamped folders for easy tracking. This makes it useful for both exploratory data analysis and predictive modeling of disk performance.
+- `index.py` entrypoint wiring the CLI
+- `src/utils/cli_utils.py` interactive menu and data selection helpers
+- `src/utils/pred_plot_utils.py` data loading, plotting, and model helpers
+- `datasets/` raw experiment data (open loop and closed loop)
+- `outputs/` generated plots and models (created at runtime)
+- `tests/` pytest coverage for core helpers
 
-## Running the Software
+## Getting started
 
-The project includes a requirements file with all the necessary dependencies. To run the software, follow these steps:
+Requirements: Python 3.10+ and `pip`.
 
-### 1. Activate the Virtual Environment
+1. Create and activate a virtual environment (example using `venv`):
+   - Windows: `python -m venv venv && venv\Scripts\activate`
+   - Linux/macOS: `python3 -m venv venv && source venv/bin/activate`
+2. Install dependencies: `pip install -r requirements.txt`
+3. Run the CLI from the repo root:
+   - Windows: `python -m index`
+   - Linux/macOS: `python3 -m index`
 
-Navigate to the root directory of the project folder, then activate the virtual environment:
+## Using the CLI
 
-- **Windows**:
+On launch you will see:
 
-```bash
-venv\Scripts\activate
+```
+1. Predict and plot a regression model
+2. Plot timeseries for each column
+3. Predict and plot an XGB model
+q. Quit
 ```
 
-- **Linux**:
+- Option 1 (regression): choose training files by index or range, select 2D or 3D regression, then pick columns and optionally force polynomial degrees. Models and plots land in `outputs/plots/regressions/...`.
+- Option 2 (timeseries): generates per-column time series for every dataset plus a combined view, saved under `outputs/plots/timeseries/...`.
+- Option 3 (XGB): trains latency predictors with all features, `time+wiops`, and `time+dispatch`, saving plots in `outputs/plots/xgb/...`.
 
-```bash
-source venv/bin/activate
+All runs create timestamped folders so results from different sessions stay separate.
+
+## Data expectations
+
+- Open loop CSVs expose columns: `time`, `wiops`, `latency`, `dispatch`.
+- Closed loop files are documented but not used by the current CLI flow.
+- Config files describe controller parameters (see dataset README for an example schema).
+
+## Outputs
+
+- Plots: `outputs/plots/` organized by task (`regressions/2d`, `regressions/3d`, `timeseries/`, `xgb/`), each run in a timestamped subfolder.
+- Models: `outputs/models/xgb/<timestamp>/` for trained XGBoost artifacts.
+- Metrics: regression utilities store the best degrees and scores in JSON helpers within `outputs/` when applicable.
+
+## Testing
+
+Run the test suite with pytest from the repo root:
+
+```
+python -m pytest
 ```
 
-### 2. Install de dependencies from the given file.
+## Troubleshooting
 
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Run the "index.py" as a module script from the root directory of the project.
-
-- **Windows**:
-
-```bash
-python -m index
-```
-
-- **Linux**:
-
-```bash
-python3 -m index
-```
+- If you add or remove datasets, restart the CLI so file discovery re-runs.
+- Ensure the `outputs/` directory is writable; the CLI will create nested folders automatically.

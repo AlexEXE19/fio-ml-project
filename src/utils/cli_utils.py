@@ -114,7 +114,10 @@ def parse_file_indexes(raw_input, no_of_files):
 
 def get_regression_setting(files, no_of_files, all_df_cols):
     raw_indexes = input(
-        "Select dataset indexes (e.g. 0 1 2 or 0-6). Press enter for all: "
+        "[Settings] Select dataset file indexes (e.g. 0 1 2 or 0-6)."
+        "\nNote: The selected ones will be used for training and the rest for testing,"
+        "\nif 'enter' is pressed all the files will be selected for both training and testing."
+        "\nPress enter for all: "
     ).split()
 
     file_indexes = parse_file_indexes(raw_indexes, no_of_files)
