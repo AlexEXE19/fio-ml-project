@@ -97,6 +97,8 @@ def parse_file_indexes(raw_input, no_of_files):
     if len(raw_input) == 1 and "-" in raw_input[0]:
         try:
             start, end = map(int, raw_input[0].split("-"))
+            if start > end or start < 0 or end >= no_of_files:
+                raise ValueError
             return list(range(start, end + 1))
         except ValueError:
             return list(range(no_of_files))
@@ -136,7 +138,7 @@ def get_regression_setting(files, no_of_files, all_df_cols):
     df_test_concat = concat_dataframes(read_files(test_files))
     df_train_global = [concat_dataframes(df_train_dicts)]
 
-    reg_type = input("\nRegression type (1 = 2D, 2 = 3D): ")
+    reg_type = input("\n[Settings] Select regression type (1 = 2D, 2 = 3D): ")
 
     print("\nAvailable columns:")
     for i, col in enumerate(all_df_cols):
@@ -151,9 +153,14 @@ def get_regression_setting(files, no_of_files, all_df_cols):
 
 
 def run_2d_regression(df_train_dicts, df_train_global, df_test_concat, all_df_cols):
-    raw_cols = input(
-        "Choose column indexes (space separated). Press enter for all: "
-    ).split()
+    print(
+        "[Settings] Choose column indexes (space separated).\nNote: For invalid input it will select all columns."
+    )
+    raw_cols = input("Press enter to select all: ").split()
+
+    print("\n[Settings] For the polynomial degree:")
+    print("Enter a number to fix the degree.")
+    print("Press Enter to auto-calculate the best R2 score (or load from JSON).")
 
     try:
         chosen_columns = (

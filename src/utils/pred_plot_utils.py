@@ -293,9 +293,9 @@ def create_and_plot_simple_regression(
 
         average_pol_degree /= no_of_samples
         average_r2score /= no_of_samples
-        print(
-            f"Average polynomial degree: {round(average_pol_degree)}, Average R2: {round(average_r2score, 3)} for {feat_col}-{pred_col}"
-        )
+        # print(
+        #     f"Average polynomial degree: {round(average_pol_degree)}, Average R2: {round(average_r2score, 3)} for {feat_col}-{pred_col}"
+        # )
 
 
 def create_and_plot_3d_regression_model(df_train_dicts, feat_cols, pred_col, degree=2):
